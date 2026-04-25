@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,sans-serif);background:#0f0f1a;color:#f0f0f8;font-size:15px;min-height:100vh}
+.page{padding:1rem 1rem 2rem}
+.header{background:linear-gradient(135deg,#185FA5 0%,#533AB7 60%,#993556 100%);border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1rem;position:relative;overflow:hidden}
+.header::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.07)}
+.header::after{content:'';position:absolute;bottom:-20px;left:40px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.05)}
+.header h1{font-size:20px;font-weight:500;color:#fff;position:relative}
+.header p{font-size:13px;color:rgba(255,255,255,.7);margin-top:3px;position:relative}
+.tabs{display:flex;gap:6px;margin-bottom:1rem;background:#1a1a2e;border-radius:12px;padding:5px}
+.tab{flex:1;padding:7px 4px;border-radius:9px;border:none;font-size:11px;cursor:pointer;background:transparent;color:rgba(255,255,255,.5);transition:all .2s;font-family:inherit}
+.tab.active{background:linear-gradient(135deg,#185FA5,#533AB7);color:#fff;font-weight:500}
+.tab:hover:not(.active){background:rgba(255,255,255,.07);color:#fff}
+.metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1rem}
+.metric{border-radius:14px;padding:14px 16px;position:relative;overflow:hidden}
+.metric::after{content:'';position:absolute;bottom:-12px;right:-12px;width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.08)}
+.metric-label{font-size:11px;color:rgba(255,255,255,.7);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.metric-value{font-size:18px;font-weight:500;color:#fff}
+.m1{background:linear-gradient(135deg,#E24B4A,#993556)}
+.m2{background:linear-gradient(135deg,#1D9E75,#185FA5)}
+.m3{background:linear-gradient(135deg,#BA7517,#D85A30)}
+.m4{background:linear-gradient(135deg,#533AB7,#185FA5)}
+.card{background:#1a1a2e;border:0.5px solid rgba(255,255,255,.1);border-radius:16px;padding:1rem 1.25rem;margin-bottom:1rem}
+.card h3{font-size:15px;font-weight:500;margin-bottom:12px;color:#fff}
+.budget-bar-wrap{background:rgba(255,255,255,.1);border-radius:6px;height:10px;overflow:hidden;margin:8px 0}
+.budget-bar{height:10px;border-radius:6px;transition:width .5s}
+.budget-label{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.6)}
+input,select{width:100%;padding:9px 12px;border:0.5px solid rgba(255,255,255,.15);border-radius:10px;background:#0f0f1a;color:#f0f0f8;font-size:14px;font-family:inherit;margin-bottom:10px}
+input:focus,select:focus{outline:none;border-color:#533AB7}
+select option{background:#1a1a2e}
+label.fl{font-size:12px;color:rgba(255,255,255,.6);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+button{padding:10px 18px;border:0.5px solid rgba(255,255,255,.2);border-radius:10px;background:transparent;color:#f0f0f8;font-size:14px;cursor:pointer;width:100%;margin-top:4px;font-family:inherit;transition:all .2s}
+button:hover{background:rgba(255,255,255,.08)}
+button.primary{background:linear-gradient(135deg,#185FA5,#533AB7);color:#fff;border:none;font-weight:500}
+button.primary:hover{opacity:.9}
+button.danger-btn{color:#E24B4A;border-color:rgba(226,75,74,.4)}
+button.danger-btn:hover{background:rgba(226,75,74,.1)}
+button.sm{width:auto;padding:5px 10px;font-size:12px;margin:0;border-radius:8px}
+.tx-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid rgba(255,255,255,.07)}
+.tx-item:last-child{border-bottom:none}
+.tx-name{font-size:14px;color:#f0f0f8}
+.tx-meta{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px}
+.tx-amount{font-weight:500;color:#E24B4A;white-space:nowrap;font-size:14px}
+.src-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;background:rgba(83,58,183,.2);color:#AFA9EC}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.legend span{display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.6)}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.month-nav{display:flex;align-items:center;gap:8px;margin-bottom:1rem}
+.month-nav button{width:36px;height:36px;padding:0;border-radius:10px;font-size:16px;display:flex;align-items:center;justify-content:center}
+.month-label{font-size:15px;font-weight:500;flex:1;text-align:center;color:#fff}
+.reminder-banner{background:linear-gradient(135deg,rgba(186,117,23,.3),rgba(216,90,48,.3));border:0.5px solid rgba(239,159,39,.3);border-radius:12px;padding:10px 14px;margin-bottom:1rem;font-size:13px;color:#FAC775;display:flex;justify-content:space-between;align-items:center}
+.reminder-banner.hide{display:none}
+.reminder-banner button{width:auto;padding:4px 12px;margin:0;font-size:12px;border-color:rgba(239,159,39,.4);color:#FAC775}
+.reminder-time-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.reminder-time-row input{width:auto;margin:0;flex:0 0 130px}
+.reminder-time-row label{font-size:13px;color:rgba(255,255,255,.6)}
+.del-btn{width:auto!important;padding:2px 8px!important;font-size:11px!important;color:#E24B4A!important;border-color:rgba(226,75,74,.4)!important;margin:0!important;border-radius:6px!important}
+
+/* wallet */
+.wallet-section{margin-bottom:1rem}
+.wallet-section-title{font-size:12px;font-weight:500;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;padding-left:2px}
+.wallet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;margin-bottom:8px}
+.wcard{border-radius:14px;padding:12px 14px;position:relative;overflow:hidden}
+.wcard::after{content:'';position:absolute;bottom:-10px;right:-10px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.08)}
+.wc-cash{background:linear-gradient(135deg,#1D9E75,#0F6E56)}
+.wc-debit{background:linear-gradient(135deg,#185FA5,#0C447C)}
+.wc-credit{background:linear-gradient(135deg,#E24B4A,#711313)}
+.wc-transfer{background:linear-gradient(135deg,#BA7517,#633806)}
+.wc-ewallet{background:linear-gradient(135deg,#533AB7,#26215C)}
+.wc-custom{background:linear-gradient(135deg,#888780,#444441)}
+.wcard-name{font-size:11px;color:rgba(255,255,255,.75);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;position:relative}
+.wcard-label{font-size:10px;color:rgba(255,255,255,.5);margin-bottom:6px;position:relative}
+.wcard-bal{font-size:17px;font-weight:500;color:#fff;position:relative}
+.wcard-info{font-size:10px;color:rgba(255,255,255,.55);margin-top:3px;position:relative}
+.wcard-actions{display:flex;gap:5px;margin-top:8px;position:relative;flex-wrap:wrap}
+.wcard-actions button{width:auto;padding:4px 9px;font-size:11px;margin:0;border-radius:7px;color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.25)}
+
+/* cc limit bar */
+.cc-bar-wrap{background:rgba(255,255,255,.15);border-radius:4px;height:5px;overflow:hidden;margin:5px 0 3px;position:relative}
+.cc-bar{height:5px;border-radius:4px}
+
+/* inline edit panel */
+.wedit-panel{background:#0f0f1a;border:0.5px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;margin-top:8px;display:none}
+.wedit-panel.open{display:block}
+.wedit-panel label.fl{margin-top:6px}
+.wedit-panel input{margin-bottom:6px}
+.wedit-row{display:flex;gap:6px}
+.wedit-row button{flex:1;padding:7px;font-size:12px;margin:0}
+
+/* add wallet form */
+.add-wallet-form{background:#0f0f1a;border:0.5px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;margin-top:8px;display:none}
+.add-wallet-form.open{display:block}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <h1>Finance Dashboard</h1>
+    <p id="headerDate"></p>
+  </div>
+
+  <div id="reminderBanner" class="reminder-banner hide">
+    <span>No expenses logged today — don't forget!</span>
+    <button onclick="dismissReminder()">Dismiss</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard',this)">Dashboard</button>
+    <button class="tab" onclick="switchTab('wallets',this)">Wallets</button>
+    <button class="tab" onclick="switchTab('add',this)">Add</button>
+    <button class="tab" onclick="switchTab('history',this)">History</button>
+    <button class="tab" onclick="switchTab('settings',this)">Settings</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard">
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)">&#8592;</button>
+      <span class="month-label" id="monthLabel"></span>
+      <button onclick="changeMonth(1)">&#8594;</button>
+    </div>
+    <div class="metric-grid">
+      <div class="metric m1"><div class="metric-label">Total Spent</div><div class="metric-value" id="m-total">Rp 0</div></div>
+      <div class="metric m2"><div class="metric-label">Budget Left</div><div class="metric-value" id="m-left">Rp 0</div></div>
+      <div class="metric m3"><div class="metric-label">Avg / Day</div><div class="metric-value" id="m-avg">Rp 0</div></div>
+      <div class="metric m4"><div class="metric-label">Transactions</div><div class="metric-value" id="m-count">0</div></div>
+    </div>
+    <div class="card">
+      <h3>Monthly budget</h3>
+      <div class="budget-label"><span id="budgetSpentLabel">Rp 0 spent</span><span id="budgetTotalLabel">of Rp 0</span></div>
+      <div class="budget-bar-wrap"><div class="budget-bar" id="budgetBar" style="width:0%"></div></div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" id="budgetPct">0% used</div>
+    </div>
+    <div class="card">
+      <h3>Spending by category</h3>
+      <div class="legend" id="donutLegend"></div>
+      <div style="position:relative;width:100%;height:220px">
+        <canvas id="donutChart" role="img" aria-label="Donut chart spending by category">No data yet.</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3>By payment source</h3>
+      <div style="position:relative;width:100%;height:180px">
+        <canvas id="sourceChart" role="img" aria-label="Bar chart spending by payment source">No data yet.</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Recent transactions</h3>
+      <div id="recentList"><p style="font-size:13px;color:rgba(255,255,255,.4)">No transactions this month.</p></div>
+    </div>
+  </div>
+
+  <!-- WALLETS -->
+  <div id="tab-wallets" style="display:none">
+    <div class="card" style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <h3 style="margin:0">Total balance</h3>
+      </div>
+      <div style="font-size:26px;font-weight:500;color:#5DCAA5" id="totalBalance">Rp 0</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:4px">Combined across all wallets</div>
+    </div>
+    <div id="walletSections"></div>
+    <button onclick="toggleAddWallet()" style="border-style:dashed;color:rgba(255,255,255,.5);margin-bottom:1rem">+ Add new wallet</button>
+    <div class="add-wallet-form" id="addWalletForm">
+      <label class="fl">Wallet name</label>
+      <input type="text" id="nw-name" placeholder="e.g. BCA Credit Card">
+      <label class="fl">Type</label>
+      <select id="nw-type">
+        <option value="Cash">Cash</option>
+        <option value="Debit Card">Debit Card</option>
+        <option value="Credit Card">Credit Card</option>
+        <option value="Transfer">Transfer</option>
+        <option value="E-Wallet">E-Wallet</option>
+        <option value="Other">Other</option>
+      </select>
+      <label class="fl">Balance (Rp)</label>
+      <input type="number" id="nw-bal" placeholder="e.g. 2000000" min="0">
+      <div id="nw-cc-wrap">
+        <label class="fl">Credit limit (Rp) — optional</label>
+        <input type="number" id="nw-limit" placeholder="e.g. 10000000" min="0">
+      </div>
+      <div class="wedit-row" style="margin-top:4px">
+        <button class="primary" onclick="addWallet()">Add wallet</button>
+        <button onclick="toggleAddWallet()">Cancel</button>
+      </div>
+      <div id="nw-msg" style="font-size:13px;margin-top:8px;color:#E24B4A;text-align:center"></div>
+    </div>
+  </div>
+
+  <!-- ADD EXPENSE -->
+  <div id="tab-add" style="display:none">
+    <div class="card">
+      <h3>Add expense</h3>
+      <label class="fl">Amount (Rp)</label>
+      <input type="number" id="inp-amount" placeholder="e.g. 50000" min="0">
+      <label class="fl">Category</label>
+      <select id="inp-cat">
+        <option value="Food">Food</option>
+        <option value="Transport">Transport</option>
+        <option value="Bills">Bills</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Health">Health</option>
+        <option value="Entertainment">Entertainment</option>
+        <option value="Other">Other</option>
+      </select>
+      <label class="fl">Pay from wallet</label>
+      <select id="inp-source"></select>
+      <label class="fl">Note (optional)</label>
+      <input type="text" id="inp-note" placeholder="e.g. Lunch at warung">
+      <label class="fl">Date</label>
+      <input type="date" id="inp-date">
+      <button class="primary" onclick="addExpense()">Save expense</button>
+      <div id="add-msg" style="font-size:13px;margin-top:8px;color:#5DCAA5;text-align:center"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="tab-history" style="display:none">
+    <div class="card">
+      <h3>All transactions</h3>
+      <label class="fl">Category</label>
+      <select id="hist-filter" onchange="renderHistory()">
+        <option value="all">All categories</option>
+        <option value="Food">Food</option>
+        <option value="Transport">Transport</option>
+        <option value="Bills">Bills</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Health">Health</option>
+        <option value="Entertainment">Entertainment</option>
+        <option value="Other">Other</option>
+      </select>
+      <label class="fl">Wallet</label>
+      <select id="hist-source-filter" onchange="renderHistory()" style="margin-bottom:12px">
+        <option value="all">All wallets</option>
+      </select>
+      <div id="histList"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="tab-settings" style="display:none">
+    <div class="card">
+      <label class="fl">Monthly budget (Rp)</label>
+      <input type="number" id="set-budget" placeholder="e.g. 3000000" min="0">
+      <button class="primary" onclick="saveBudget()">Save budget</button>
+      <div id="budget-msg" style="font-size:13px;margin-top:8px;color:#5DCAA5;text-align:center"></div>
+    </div>
+    <div class="card">
+      <h3>Daily reminder</h3>
+      <p style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:8px">Get a browser notification to log expenses daily.</p>
+      <div class="reminder-time-row"><label>Remind me at</label><input type="time" id="set-reminder-time" value="21:00"></div>
+      <button class="primary" onclick="enableReminder()" style="margin-top:12px">Enable reminder</button>
+      <button onclick="testReminder()" style="margin-top:6px">Send test notification</button>
+      <div id="reminder-msg" style="font-size:13px;margin-top:8px;color:rgba(255,255,255,.5);text-align:center"></div>
+    </div>
+    <div class="card"><button class="danger-btn" onclick="clearAll()">Clear all expense data</button></div>
+  </div>
+</div>
+
+<script>
+const CATS=['Food','Transport','Bills','Shopping','Health','Entertainment','Other'];
+const CAT_COLORS=['#378ADD','#1D9E75','#E24B4A','#D85A30','#D4537E','#BA7517','#888780'];
+const TYPE_GRAD={Cash:'linear-gradient(135deg,#1D9E75,#0F6E56)','Debit Card':'linear-gradient(135deg,#185FA5,#0C447C)','Credit Card':'linear-gradient(135deg,#E24B4A,#711313)',Transfer:'linear-gradient(135deg,#BA7517,#633806)','E-Wallet':'linear-gradient(135deg,#533AB7,#26215C)',Other:'linear-gradient(135deg,#888780,#444441)'};
+
+// wallets: [{id, name, type, balance, limit(optional)}]
+let state={expenses:[],budget:5000000,reminderTime:'21:00',reminderEnabled:false,wallets:[]};
+let viewMonth=new Date().getMonth(),viewYear=new Date().getFullYear();
+let donutChart=null,sourceChart=null;
+
+const fmt=n=>'Rp '+Math.round(n).toLocaleString('id-ID');
+const uid=()=>Date.now()+Math.random().toString(36).slice(2,6);
+
+function defaultWallets(){
+  return [
+    {id:uid(),name:'Cash',type:'Cash',balance:0},
+    {id:uid(),name:'Debit Card',type:'Debit Card',balance:0},
+    {id:uid(),name:'Credit Card',type:'Credit Card',balance:0,limit:0},
+    {id:uid(),name:'Transfer',type:'Transfer',balance:0},
+    {id:uid(),name:'E-Wallet',type:'E-Wallet',balance:0},
+  ];
+}
+
+async function load(){
+  try{const r=await window.storage.get('finance_state4');if(r&&r.value)state=JSON.parse(r.value);}catch(e){}
+  if(!state.wallets||!state.wallets.length) state.wallets=defaultWallets();
+  document.getElementById('set-budget').value=state.budget;
+  document.getElementById('set-reminder-time').value=state.reminderTime||'21:00';
+  document.getElementById('headerDate').textContent=new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('nw-type').addEventListener('change',function(){document.getElementById('nw-cc-wrap').style.display=this.value==='Credit Card'?'block':'none';});
+  document.getElementById('nw-cc-wrap').style.display='none';
+  setDateDefault();
+  refreshWalletSelects();
+  renderDashboard();
+  renderWallets();
+  checkReminderBanner();
+  if(state.reminderEnabled) scheduleReminder();
+}
+
+async function save(){try{await window.storage.set('finance_state4',JSON.stringify(state));}catch(e){}}
+
+function setDateDefault(){document.getElementById('inp-date').value=new Date().toISOString().split('T')[0];}
+
+function refreshWalletSelects(){
+  // add expense select
+  const sel=document.getElementById('inp-source');
+  const prev=sel.value;
+  sel.innerHTML=state.wallets.map(w=>`<option value="${w.id}">${w.name}${w.type==='Credit Card'?' (CC)':''}</option>`).join('');
+  if(prev) sel.value=prev;
+  // history filter
+  const hsel=document.getElementById('hist-source-filter');
+  const hprev=hsel.value;
+  hsel.innerHTML='<option value="all">All wallets</option>'+state.wallets.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
+  if(hprev) hsel.value=hprev;
+}
+
+function switchTab(name,el){
+  ['dashboard','wallets','add','history','settings'].forEach(t=>{document.getElementById('tab-'+t).style.display=t===name?'':'none';});
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if(name==='history'){renderHistory();}
+  if(name==='dashboard'){renderDashboard();}
+  if(name==='wallets'){renderWallets();}
+  if(name==='add'){refreshWalletSelects();}
+}
+
+function getMonthExpenses(m,y){return state.expenses.filter(e=>{const d=new Date(e.date);return d.getMonth()===m&&d.getFullYear()===y;});}
+function changeMonth(d){viewMonth+=d;if(viewMonth>11){viewMonth=0;viewYear++;}if(viewMonth<0){viewMonth=11;viewYear--;}renderDashboard();}
+
+function walletById(id){return state.wallets.find(w=>w.id===id);}
+function walletName(id){const w=walletById(id);return w?w.name:id;}
+
+function renderDashboard(){
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('monthLabel').textContent=months[viewMonth]+' '+viewYear;
+  const exps=getMonthExpenses(viewMonth,viewYear);
+  const total=exps.reduce((s,e)=>s+e.amount,0);
+  const budget=state.budget||0;
+  const left=budget-total;
+  const daysInMonth=new Date(viewYear,viewMonth+1,0).getDate();
+  document.getElementById('m-total').textContent=fmt(total);
+  document.getElementById('m-left').textContent=fmt(Math.max(0,left));
+  document.getElementById('m-count').textContent=exps.length;
+  document.getElementById('m-avg').textContent=fmt(total/daysInMonth);
+  const pct=budget>0?Math.min(100,Math.round(total/budget*100)):0;
+  const bar=document.getElementById('budgetBar');
+  bar.style.width=pct+'%';
+  bar.style.background=pct>90?'linear-gradient(90deg,#E24B4A,#993556)':pct>70?'linear-gradient(90deg,#BA7517,#D85A30)':'linear-gradient(90deg,#185FA5,#533AB7)';
+  document.getElementById('budgetSpentLabel').textContent=fmt(total)+' spent';
+  document.getElementById('budgetTotalLabel').textContent='of '+fmt(budget);
+  document.getElementById('budgetPct').textContent=pct+'% used';
+
+  // donut by category
+  renderDonut(CATS.map(c=>exps.filter(e=>e.category===c).reduce((s,e)=>s+e.amount,0)));
+
+  // bar by wallet
+  const wLabels=state.wallets.map(w=>w.name.length>10?w.name.slice(0,10)+'…':w.name);
+  const wTotals=state.wallets.map(w=>exps.filter(e=>e.walletId===w.id).reduce((a,e)=>a+e.amount,0));
+  const wColors=state.wallets.map(w=>{
+    const g=TYPE_GRAD[w.type]||TYPE_GRAD.Other;
+    const m=g.match(/#[0-9a-fA-F]{6}/g);
+    return m?m[0]:'#888780';
+  });
+  renderSourceChart(wLabels,wTotals,wColors);
+
+  const recent=[...exps].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const rl=document.getElementById('recentList');
+  if(!recent.length){rl.innerHTML='<p style="font-size:13px;color:rgba(255,255,255,.4)">No transactions this month.</p>';return;}
+  rl.innerHTML=recent.map(e=>`<div class="tx-item"><div><div class="tx-name">${e.note||e.category}</div><div class="tx-meta">${e.category} &middot; <span class="src-badge">${walletName(e.walletId||e.source||'')}</span> &middot; ${e.date}</div></div><div class="tx-amount">${fmt(e.amount)}</div></div>`).join('');
+}
+
+function renderDonut(catTotals){
+  const total=catTotals.reduce((a,b)=>a+b,0);
+  document.getElementById('donutLegend').innerHTML=CATS.map((c,i)=>catTotals[i]>0?`<span><span class="legend-dot" style="background:${CAT_COLORS[i]}"></span>${c} ${total?Math.round(catTotals[i]/total*100):0}%</span>`:'').join('');
+  if(donutChart) donutChart.destroy();
+  donutChart=new Chart(document.getElementById('donutChart'),{type:'doughnut',data:{labels:CATS,datasets:[{data:catTotals,backgroundColor:CAT_COLORS,borderWidth:0,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmt(ctx.raw)}}},cutout:'65%'}});
+}
+
+function renderSourceChart(labels,data,colors){
+  if(sourceChart) sourceChart.destroy();
+  sourceChart=new Chart(document.getElementById('sourceChart'),{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:8,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},scales:{x:{ticks:{color:'rgba(255,255,255,.5)',font:{size:10},autoSkip:false,maxRotation:30},grid:{display:false},border:{display:false}},y:{ticks:{color:'rgba(255,255,255,.4)',font:{size:11},callback:v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v},grid:{color:'rgba(255,255,255,.06)'},border:{display:false}}}}});
+}
+
+// Group wallets by type for display
+function renderWallets(){
+  const sections=document.getElementById('walletSections');
+  const groups={};
+  state.wallets.forEach(w=>{
+    if(!groups[w.type]) groups[w.type]=[];
+    groups[w.type].push(w);
+  });
+  const typeOrder=['Cash','Debit Card','Credit Card','Transfer','E-Wallet','Other'];
+  let html='';
+  typeOrder.forEach(type=>{
+    if(!groups[type]) return;
+    html+=`<div class="wallet-section"><div class="wallet-section-title">${type}</div><div class="wallet-grid">`;
+    groups[type].forEach(w=>{
+      const spent=state.expenses.filter(e=>e.walletId===w.id).reduce((a,e)=>a+e.amount,0);
+      const isCC=w.type==='Credit Card';
+      const limit=w.limit||0;
+      const used=isCC&&limit>0?Math.min(100,Math.round(spent/limit*100)):0;
+      const barColor=used>90?'#E24B4A':used>70?'#EF9F27':'#5DCAA5';
+      html+=`<div class="wcard" style="background:${TYPE_GRAD[w.type]||TYPE_GRAD.Other}">
+        <div class="wcard-name">${w.name}</div>
+        <div class="wcard-label">${w.type}</div>
+        <div class="wcard-bal">${fmt(w.balance)}</div>`;
+      if(isCC&&limit>0){
+        html+=`<div class="cc-bar-wrap"><div class="cc-bar" style="width:${used}%;background:${barColor}"></div></div>
+        <div class="wcard-info">Limit: ${fmt(limit)} &middot; Used: ${used}%</div>
+        <div class="wcard-info">Available: ${fmt(Math.max(0,limit-spent))}</div>`;
+      } else {
+        html+=`<div class="wcard-info">Spent: ${fmt(spent)}</div>`;
+      }
+      html+=`<div class="wcard-actions">
+          <button onclick="openEdit('${w.id}')">Edit</button>
+          <button onclick="deleteWallet('${w.id}')" style="color:#F09595;border-color:rgba(240,149,149,.4)">Remove</button>
+        </div>
+        <div class="wedit-panel" id="ep-${w.id}">
+          <label class="fl">Balance (Rp)</label>
+          <input type="number" id="eb-${w.id}" placeholder="New balance" value="${w.balance}" min="0">
+          ${isCC?`<label class="fl">Credit limit (Rp)</label><input type="number" id="el-${w.id}" placeholder="e.g. 10000000" value="${w.limit||''}" min="0">`:''}
+          <label class="fl">Wallet name</label>
+          <input type="text" id="en-${w.id}" value="${w.name}">
+          <div class="wedit-row">
+            <button class="primary" onclick="saveEdit('${w.id}')">Save</button>
+            <button onclick="closeEdit('${w.id}')">Cancel</button>
+          </div>
+        </div>
+      </div>`;
+    });
+    html+='</div></div>';
+  });
+  sections.innerHTML=html;
+
+  const total=state.wallets.reduce((a,w)=>a+w.balance,0);
+  document.getElementById('totalBalance').textContent=fmt(total);
+}
+
+function openEdit(id){
+  document.querySelectorAll('.wedit-panel').forEach(p=>p.classList.remove('open'));
+  document.getElementById('ep-'+id).classList.add('open');
+}
+function closeEdit(id){document.getElementById('ep-'+id).classList.remove('open');}
+
+function saveEdit(id){
+  const w=walletById(id);if(!w)return;
+  const bal=parseFloat(document.getElementById('eb-'+id).value)||0;
+  const nameEl=document.getElementById('en-'+id);
+  if(nameEl) w.name=nameEl.value.trim()||w.name;
+  w.balance=bal;
+  if(w.type==='Credit Card'){
+    const limEl=document.getElementById('el-'+id);
+    if(limEl) w.limit=parseFloat(limEl.value)||0;
+  }
+  save();
+  refreshWalletSelects();
+  renderWallets();
+  renderDashboard();
+}
+
+function deleteWallet(id){
+  if(!confirm('Remove this wallet? Expense records are kept.')) return;
+  state.wallets=state.wallets.filter(w=>w.id!==id);
+  save();refreshWalletSelects();renderWallets();renderDashboard();
+}
+
+function toggleAddWallet(){
+  const f=document.getElementById('addWalletForm');
+  f.classList.toggle('open');
+}
+
+function addWallet(){
+  const name=document.getElementById('nw-name').value.trim();
+  const type=document.getElementById('nw-type').value;
+  const bal=parseFloat(document.getElementById('nw-bal').value)||0;
+  const limit=parseFloat(document.getElementById('nw-limit').value)||0;
+  const msg=document.getElementById('nw-msg');
+  if(!name){msg.textContent='Please enter a wallet name.';return;}
+  const w={id:uid(),name,type,balance:bal};
+  if(type==='Credit Card') w.limit=limit;
+  state.wallets.push(w);
+  save();
+  document.getElementById('nw-name').value='';
+  document.getElementById('nw-bal').value='';
+  document.getElementById('nw-limit').value='';
+  msg.textContent='';
+  document.getElementById('addWalletForm').classList.remove('open');
+  refreshWalletSelects();
+  renderWallets();
+}
+
+function addExpense(){
+  const amt=parseFloat(document.getElementById('inp-amount').value);
+  const cat=document.getElementById('inp-cat').value;
+  const walletId=document.getElementById('inp-source').value;
+  const note=document.getElementById('inp-note').value.trim();
+  const date=document.getElementById('inp-date').value;
+  const msg=document.getElementById('add-msg');
+  if(!amt||amt<=0){msg.textContent='Please enter a valid amount.';msg.style.color='#E24B4A';return;}
+  if(!date){msg.textContent='Please select a date.';msg.style.color='#E24B4A';return;}
+  state.expenses.push({id:Date.now(),amount:amt,category:cat,note,date,walletId,source:walletName(walletId)});
+  save();
+  document.getElementById('inp-amount').value='';
+  document.getElementById('inp-note').value='';
+  setDateDefault();
+  msg.textContent='Expense saved!';msg.style.color='#5DCAA5';
+  setTimeout(()=>msg.textContent='',2000);
+  renderDashboard();
+  checkReminderBanner();
+}
+
+function renderHistory(){
+  const catF=document.getElementById('hist-filter').value;
+  const srcF=document.getElementById('hist-source-filter').value;
+  let exps=state.expenses;
+  if(catF!=='all') exps=exps.filter(e=>e.category===catF);
+  if(srcF!=='all') exps=exps.filter(e=>e.walletId===srcF);
+  const sorted=[...exps].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const hl=document.getElementById('histList');
+  if(!sorted.length){hl.innerHTML='<p style="font-size:13px;color:rgba(255,255,255,.4)">No transactions found.</p>';return;}
+  hl.innerHTML=sorted.map(e=>`<div class="tx-item"><div><div class="tx-name">${e.note||e.category}</div><div class="tx-meta">${e.category} &middot; <span class="src-badge">${walletName(e.walletId||'')}</span> &middot; ${e.date}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="tx-amount">${fmt(e.amount)}</div><button class="del-btn" onclick="deleteExpense(${e.id})">x</button></div></div>`).join('');
+}
+
+function deleteExpense(id){state.expenses=state.expenses.filter(e=>e.id!==id);save();renderHistory();renderDashboard();}
+
+function saveBudget(){
+  const b=parseFloat(document.getElementById('set-budget').value);
+  const msg=document.getElementById('budget-msg');
+  if(!b||b<=0){msg.textContent='Enter a valid budget.';msg.style.color='#E24B4A';return;}
+  state.budget=b;save();
+  msg.textContent='Budget saved!';msg.style.color='#5DCAA5';
+  setTimeout(()=>msg.textContent='',2000);
+  renderDashboard();
+}
+
+function checkReminderBanner(){
+  const today=new Date().toISOString().split('T')[0];
+  state.expenses.some(e=>e.date===today)?document.getElementById('reminderBanner').classList.add('hide'):document.getElementById('reminderBanner').classList.remove('hide');
+}
+function dismissReminder(){document.getElementById('reminderBanner').classList.add('hide');}
+
+let reminderInterval=null;
+function scheduleReminder(){
+  if(reminderInterval) clearInterval(reminderInterval);
+  reminderInterval=setInterval(()=>{
+    const now=new Date();
+    const hhmm=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+    if(hhmm===(state.reminderTime||'21:00')){
+      const today=new Date().toISOString().split('T')[0];
+      if(!state.expenses.some(e=>e.date===today)&&Notification.permission==='granted')
+        new Notification('Finance Reminder',{body:"Don't forget to log your expenses today!"});
+    }
+  },60000);
+}
+
+async function enableReminder(){
+  state.reminderTime=document.getElementById('set-reminder-time').value;
+  state.reminderEnabled=true;save();
+  const msg=document.getElementById('reminder-msg');
+  if(!('Notification' in window)){msg.textContent='Notifications not supported.';return;}
+  const perm=await Notification.requestPermission();
+  if(perm==='granted'){msg.textContent='Reminder set for '+state.reminderTime+' daily.';scheduleReminder();}
+  else msg.textContent='Permission denied. Allow notifications in browser settings.';
+}
+function testReminder(){
+  if(Notification.permission==='granted') new Notification('Finance Reminder',{body:"Don't forget to log your expenses today!"});
+  else document.getElementById('reminder-msg').textContent='Enable reminder first.';
+}
+function clearAll(){
+  if(confirm('Clear all expense data? This cannot be undone.')){state.expenses=[];save();renderDashboard();renderHistory();}
+}
+
+load();
+</script>
+</body>
+</html>
